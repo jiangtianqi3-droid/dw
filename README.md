@@ -156,16 +156,16 @@ python -m src.enrich_predictions --config configs/real_problem_level_v1.yaml --i
 
 ## 接入课题二知识图谱
 
-课题二代码位于根目录的 `trustworthy-tech-kg/`，当前模型侧第一版只消费其离线图谱文件：
+仓库已经内置课题二离线图谱文件，克隆本仓库后无需额外准备 `trustworthy-tech-kg/` 目录即可运行知识图谱关联：
 
 ```text
-../trustworthy-tech-kg/trustworthy-tech-kg/output/kg_graph.json
+data/kg/kg_graph.json
 ```
 
 在决策增强结果上关联课题二监督要点、标准文件和监督要求，并生成标准修订优先级：
 
 ```bash
-python -m src.enrich_with_kg --config configs/real_problem_level_v1.yaml --input-file outputs/predictions_enriched.csv --kg-graph ../trustworthy-tech-kg/trustworthy-tech-kg/output/kg_graph.json --output-file outputs/predictions_kg_linked.csv --standard-report outputs/standard_revision_priority.csv --markdown-report outputs/kg_revision_report.md --top-k 3 --min-score 0.18
+python -m src.enrich_with_kg --config configs/real_problem_level_v1.yaml --input-file outputs/predictions_enriched.csv --kg-graph data/kg/kg_graph.json --output-file outputs/predictions_kg_linked.csv --standard-report outputs/standard_revision_priority.csv --markdown-report outputs/kg_revision_report.md --top-k 3 --min-score 0.18
 ```
 
 主要输出：

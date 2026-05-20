@@ -23,7 +23,9 @@
 
 课题二输入：
 
-- `../trustworthy-tech-kg/trustworthy-tech-kg/output/kg_graph.json`
+- `data/kg/kg_graph.json`
+
+仓库已内置该离线图谱文件，因此克隆本仓库后不需要额外准备 `trustworthy-tech-kg/` 目录。
 
 当前图谱主要覆盖：
 
@@ -42,7 +44,7 @@ kg_match_status=unsupported_equipment
 .\.venv_local\Scripts\python.exe -m src.enrich_with_kg `
   --config configs/real_problem_level_v1.yaml `
   --input-file outputs/predictions_enriched.csv `
-  --kg-graph ..\trustworthy-tech-kg\trustworthy-tech-kg\output\kg_graph.json `
+  --kg-graph data\kg\kg_graph.json `
   --output-file outputs/predictions_kg_linked.csv `
   --standard-report outputs/standard_revision_priority.csv `
   --markdown-report outputs/kg_revision_report.md `
@@ -132,4 +134,3 @@ kg_match_status=unsupported_equipment
 - 当前是规则匹配和规则识别版本，适合形成演示和报告闭环。
 - 课题二图谱覆盖范围有限，未覆盖设备不做低置信度硬匹配。
 - 修订需求结论仍需专家复核，不能直接替代正式标准制修订决策。
-
