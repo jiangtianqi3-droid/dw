@@ -13,7 +13,8 @@
 - 图谱导出
 - 课题二知识图谱关联
 - 标准修订需求识别
-- 标准修订优先级排序
+- 单条问题级标准修订优先级排序
+- 标准/条款级修订优先级聚合
 
 ## 环境要求
 
@@ -162,7 +163,7 @@ python -m src.enrich_predictions --config configs/real_problem_level_v1.yaml --i
 data/kg/kg_graph.json
 ```
 
-在决策增强结果上关联课题二监督要点、标准文件和监督要求，并生成标准修订优先级：
+在决策增强结果上关联课题二监督要点、标准文件和监督要求，并生成单条问题级标准修订优先级：
 
 ```bash
 python -m src.enrich_with_kg --config configs/real_problem_level_v1.yaml --input-file outputs/predictions_enriched.csv --kg-graph data/kg/kg_graph.json --output-file outputs/predictions_kg_linked.csv --standard-report outputs/standard_revision_priority.csv --markdown-report outputs/kg_revision_report.md --top-k 3 --min-score 0.18
@@ -171,7 +172,7 @@ python -m src.enrich_with_kg --config configs/real_problem_level_v1.yaml --input
 主要输出：
 
 - `outputs/predictions_kg_linked.csv`：问题级图谱关联与修订需求识别结果
-- `outputs/standard_revision_priority.csv`：标准级修订优先级排序
+- `outputs/standard_revision_priority.csv`：基于问题级关联结果生成的标准修订优先级排序
 - `outputs/kg_revision_report.md`：验证报告，包含匹配率、未匹配原因、Top 标准和典型样本
 - `outputs/predictions_kg_linked_human.xlsx`：人工复核 Excel，可由 `src.export_review_sheet` 导出
 
@@ -198,6 +199,38 @@ python -m src.enrich_with_kg --config configs/real_problem_level_v1.yaml --input
 
 - `docs/kg_revision_integration.md`
 
+## 标准/条款级修订优先级聚合
+
+完整流程如下：
+
+```text
+问题记录
+-> 分类预测
+-> 置信度与人工复核
+-> 问题—标准/条款关联
+-> 单条问题级标准修订需求识别
+-> 标准/条款级聚合排序
+-> 输出标准修订优先级汇总表和图谱记录
+```
+
+三个优先级概念需要区分：
+
+- `priority`：单条问题处理优先级，面向现场整改和问题处置。
+- `standard_revision_priority`：单条问题指向的标准修订优先级，说明该问题是否提示标准需要修订。
+- `aggregated_standard_revision_priority`：多条问题按同一标准/条款聚合后的标准修订优先级，用于回答“哪些标准/条款应优先修订”。
+
+聚合命令：
+
+```bash
+python -m src.aggregate_standard_revision_priority --input outputs/predictions_kg_linked.csv --output outputs/standard_revision_priority_summary.csv --json-output outputs/standard_revision_priority_summary.json --report-output outputs/standard_revision_priority_report.md --top-k 50 --min-problem-count 1
+```
+
+主要输出：
+
+- `outputs/standard_revision_priority_summary.csv`：标准/条款级修订优先级排行榜
+- `outputs/standard_revision_priority_summary.json`：结构化聚合结果
+- `outputs/standard_revision_priority_report.md`：Markdown 汇总报告，包含 Top 10、缺失字段说明和复核提示
+
 ## 反馈回流
 
 ```bash
@@ -216,12 +249,27 @@ python -m src.export_graph_records --config configs/real_problem_level_v1.yaml -
 python -m src.export_graph_records --config configs/real_problem_level_v1.yaml --input-file outputs/predictions_kg_linked.csv --output-file outputs/graph_records_kg_linked_from_predictions.jsonl
 ```
 
+图谱导出保留一行一个问题的默认结构，同时新增 `graph_nodes` 和 `graph_edges` 字段，显式包含：
+
+- 节点：`problem`、`standard`、`clause`、`category`、`severity`、`device`、`major`
+- 边：`related_to_clause`、`belongs_to_standard`、`related_to_standard`、`has_category`、`has_severity`、`has_device`、`has_major`
+
+端到端示例：
+
+```bash
+python -m src.enrich_with_kg --config configs/real_problem_level_v1.yaml --input-file outputs/predictions_enriched.csv --kg-graph data/kg/kg_graph.json --output-file outputs/predictions_kg_linked.csv --standard-report outputs/standard_revision_priority.csv --markdown-report outputs/kg_revision_report.md --top-k 3 --min-score 0.18
+python -m src.aggregate_standard_revision_priority --input outputs/predictions_kg_linked.csv --output outputs/standard_revision_priority_summary.csv --json-output outputs/standard_revision_priority_summary.json --report-output outputs/standard_revision_priority_report.md
+python -m src.export_graph_records --config configs/real_problem_level_v1.yaml --input-file outputs/predictions_kg_linked.csv --output-file outputs/graph_records_kg_linked_from_predictions.jsonl
+```
+
 ## 测试
 
 知识图谱关联与标准修订优先级相关单元测试：
 
 ```bash
 python -m unittest tests.test_kg_revision -v
+python -m unittest tests.test_standard_revision_aggregation -v
+python -m unittest discover tests
 ```
 
 本轮已验证：
@@ -230,7 +278,7 @@ python -m unittest tests.test_kg_revision -v
 - 已知监督要点匹配
 - 非课题二覆盖设备识别
 - 修订需求规则
-- 标准修订优先级聚合
+- 标准/条款级修订优先级聚合
 
 ## 可移植性约定
 

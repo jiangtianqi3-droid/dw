@@ -8,7 +8,8 @@
 问题预测结果
 -> 关联课题二监督要点、标准文件、监督要求
 -> 识别疑似标准修订需求
--> 聚合生成标准修订优先级排序
+-> 单条问题级标准修订优先级识别
+-> 标准/条款级聚合生成标准修订优先级排序
 -> 导出复核表、图谱 JSONL 和验证报告
 ```
 
@@ -116,6 +117,33 @@ kg_match_status=unsupported_equipment
 - `standard_revision_priority_label`
 - `example_issue_ids`
 
+标准/条款级聚合字段：
+
+- `rank`
+- `kg_standard_id`
+- `kg_standard_name`
+- `kg_clause_id`
+- `kg_clause_title`
+- `clause_missing`
+- `related_problem_count`
+- `high_severity_problem_count`
+- `medium_high_severity_problem_count`
+- `revision_demand_count`
+- `manual_review_count`
+- `low_confidence_problem_count`
+- `avg_relation_confidence`
+- `max_relation_confidence`
+- `avg_standard_revision_priority_score`
+- `device_type_count`
+- `major_count`
+- `organization_count`
+- `region_count`
+- `aggregated_priority_score`
+- `aggregated_priority_level`
+- `aggregated_priority_reason`
+- `representative_problem_ids`
+- `representative_problem_texts`
+
 ## 6. 修订需求类型
 
 当前规则固定输出以下类型：
@@ -129,7 +157,96 @@ kg_match_status=unsupported_equipment
 
 其中 `标准缺失`、`标准表述歧义`、`标准冲突`、`适用性不足` 会被标记为疑似标准修订需求。
 
-## 7. 局限
+## 7. 标准/条款级修订优先级聚合
+
+标准/条款级聚合用于把多条问题按同一标准和同一条款汇总，形成面向标准制修订工作的排序清单。若输入中缺少 `kg_clause_id`，系统按标准级聚合，并在输出中标记：
+
+```text
+clause_missing=true
+```
+
+聚合维度优先使用：
+
+- `kg_standard_id`
+- `kg_standard_name`
+- `kg_clause_id`
+- `kg_clause_title`
+
+如果标准 ID 或名称缺失，但存在 `kg_standard_refs`，会从标准引用文本派生稳定 ID，避免因字段缺失导致流程中断。
+
+聚合分数采用规则化加权，不引入机器学习模型：
+
+```text
+aggregated_priority_score =
+  0.25 * frequency_score
++ 0.25 * severity_score
++ 0.20 * revision_demand_score
++ 0.15 * relation_confidence_score
++ 0.10 * coverage_score
++ 0.05 * existing_record_priority_score
+- 0.10 * uncertainty_penalty
+```
+
+各子分数限制在 0 到 1 之间，最终分数限制在 0 到 100 之间。等级划分如下：
+
+- `score >= 80`：高优先级
+- `60 <= score < 80`：中高优先级
+- `40 <= score < 60`：中优先级
+- `score < 40`：低优先级
+
+运行命令：
+
+```powershell
+.\.venv_local\Scripts\python.exe -m src.aggregate_standard_revision_priority `
+  --input outputs/predictions_kg_linked.csv `
+  --output outputs/standard_revision_priority_summary.csv `
+  --json-output outputs/standard_revision_priority_summary.json `
+  --report-output outputs/standard_revision_priority_report.md `
+  --top-k 50 `
+  --min-problem-count 1
+```
+
+报告会输出总关联问题数、参与聚合的标准数、参与聚合的条款数、高优先级数量、中高优先级数量、Top 10 标准/条款、缺失字段说明，以及低置信度或需人工复核说明。
+
+## 8. 图谱导出
+
+`src.export_graph_records` 保留默认的一行一个问题 JSONL 导出，同时新增 `graph_nodes` 和 `graph_edges` 字段，用于显式交付图谱节点和关系。
+
+节点类型包括：
+
+- `problem`
+- `standard`
+- `clause`
+- `category`
+- `severity`
+- `device`
+- `major`
+
+关系类型包括：
+
+- `problem -> clause`：`related_to_clause`
+- `clause -> standard`：`belongs_to_standard`
+- `problem -> standard`：`related_to_standard`
+- `problem -> category`：`has_category`
+- `problem -> severity`：`has_severity`
+- `problem -> device`：`has_device`
+- `problem -> major`：`has_major`
+
+边上会尽量保留：
+
+- `confidence`
+- `source_field`
+- `relation_reason`
+
+如果 `kg_clause_id` 为空，不生成空条款节点，但仍保留 `problem -> standard` 关系。
+
+## 9. 概念区分
+
+- `priority`：问题处理优先级，面向单条问题的现场整改和管理闭环。
+- `standard_revision_priority`：单条问题指向的标准修订优先级，说明该问题是否提示某个标准需要修订。
+- `aggregated_standard_revision_priority`：标准/条款级聚合后的标准修订优先级，用于说明哪些标准或条款应优先进入修订需求池。
+
+## 10. 局限
 
 - 当前是规则匹配和规则识别版本，适合形成演示和报告闭环。
 - 课题二图谱覆盖范围有限，未覆盖设备不做低置信度硬匹配。

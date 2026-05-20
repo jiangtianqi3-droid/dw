@@ -9,7 +9,7 @@ from src.utils.graph_export import build_graph_export_dataframe, resolve_graph_o
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Export graph-friendly issue records.")
+    parser = argparse.ArgumentParser(description="Export graph-friendly issue records with explicit nodes and edges.")
     parser.add_argument("--config", type=str, default="configs/base.yaml", help="Path to YAML config.")
     parser.add_argument("--input-file", type=str, required=True, help="Input CSV/JSONL/XLSX file.")
     parser.add_argument("--output-file", type=str, default=None, help="Output JSONL file.")
@@ -47,6 +47,7 @@ def main() -> None:
 
     print(f"Graph export saved to: {output_path}")
     print(f"Rows exported: {len(exported)}")
+    print("Structured graph fields exported: graph_nodes, graph_edges")
 
 
 if __name__ == "__main__":
