@@ -1,0 +1,123 @@
+project_name: technical-supervision-problem-category-real-v1
+
+task:
+  type: single_label_classification
+  target_name: problem_category
+  text_field: text
+  label_field: label
+  label_list:
+    - 设计与选型
+    - 采购与制造
+    - 安装与施工
+    - 调试与试验
+    - 验收与交接
+    - 资料与标识
+    - 运维与环境
+  extra_fields:
+    - device_type
+    - specialty
+    - supervision_stage
+    - problem_stage
+    - problem_level
+    - event_time
+    - source_unit
+    - data_source
+    - problem_reason
+    - rule_name
+
+data:
+  input_path: data/real/processed/pytest_processed_1_problem_category_v1.csv
+  file_type: csv
+  train_path: null
+  valid_path: null
+  test_path: null
+  split:
+    train_size: 0.8
+    valid_size: 0.1
+    test_size: 0.1
+    stratify: true
+    random_state: 42
+    persist: true
+    split_dir: artifacts/data_splits_real_problem_category_v1
+    split_file_type: csv
+    rebuild_if_source_changed: true
+
+preprocess:
+  strip: true
+  lowercase: false
+  normalize_punctuation: true
+  terminology_map: {}
+
+input_builder:
+  enabled: true
+  output_field: model_input
+  structured_fields:
+    - device_type
+    - specialty
+    - supervision_stage
+    - problem_stage
+  field_aliases:
+    text: 问题文本
+    device_type: 设备类型
+    specialty: 监督专业
+    supervision_stage: 问题产生环节
+    problem_stage: 问题产生阶段
+    event_time: 时间
+    source_unit: 来源单位
+  key_value_sep: ": "
+  field_sep: "；"
+  include_text_field_name: true
+  skip_empty_fields: true
+
+model:
+  model_name_or_path: hfl/chinese-roberta-wwm-ext
+  max_length: 128
+  problem_type: single_label_classification
+
+train:
+  output_dir: artifacts/outputs_real_problem_category_v1
+  logging_dir: artifacts/logs_real_problem_category_v1
+  num_train_epochs: 2
+  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 8
+  gradient_accumulation_steps: 2
+  learning_rate: 2.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  evaluation_strategy: epoch
+  save_strategy: epoch
+  save_total_limit: 2
+  load_best_model_at_end: true
+  metric_for_best_model: macro_f1
+  greater_is_better: true
+  logging_steps: 50
+  seed: 42
+  fp16: true
+  dataloader_pin_memory: true
+  report_to: []
+
+predict:
+  batch_size: 16
+  threshold: 0.5
+  output_dir: artifacts/predictions_real_problem_category_v1
+
+feedback:
+  output_dir: artifacts/feedback_real_problem_category_v1
+  prediction_export:
+    include_review_columns: true
+    review_confidence_threshold: 0.75
+    include_model_input: true
+    default_review_status: pending
+    default_review_comment: ""
+  retrain:
+    reviewed_label_field: reviewed_label
+    review_status_field: review_status
+    accepted_statuses:
+      - accepted
+      - corrected
+    sample_id_field: sample_id
+    data_source_field: data_source
+    output_file: artifacts/feedback_real_problem_category_v1/retrain_dataset.csv
+
+graph_export:
+  output_dir: artifacts/graph_real_problem_category_v1

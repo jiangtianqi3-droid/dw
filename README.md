@@ -1,0 +1,240 @@
+# 技术监督问题分类与标准修订决策 Baseline（dw2.0）
+
+`dw2.0` 是集成后的模型侧主工程，已经把原 `dw1.1.2` 的问题等级识别、原 `dw1.2.5` 的问题类别识别，以及课题二知识图谱关联能力合并到同一项目目录中。
+
+当前支持：
+
+- 问题等级分类
+- 问题类别分类
+- 批量预测
+- 决策增强
+- 人工复核
+- 反馈回流
+- 图谱导出
+- 课题二知识图谱关联
+- 标准修订需求识别
+- 标准修订优先级排序
+
+## 环境要求
+
+- Python 3.10+
+- 建议安装 `requirements.txt` 中的依赖
+- 首次下载 Hugging Face 模型时，如需国内镜像，可通过环境变量设置：
+
+```bash
+set HF_ENDPOINT=https://hf-mirror.com
+```
+
+## 目录说明
+
+```text
+dw2.0/
+├─ configs/
+├─ data/
+│  ├─ mock/
+│  ├─ generated/
+│  └─ real/
+│     ├─ raw/
+│     │  └─ pytest_processed_1.xlsx
+│     └─ processed/
+├─ src/
+├─ docs/
+├─ outputs/
+├─ tests/
+├─ artifacts/
+├─ README.md
+└─ requirements.txt
+```
+
+## 安装
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+## 真实数据准备
+
+原始 Excel 默认放在 `data/real/raw/pytest_processed_1.xlsx`。
+
+生成“问题等级”训练数据：
+
+```bash
+python -m src.data.prepare_real_data
+```
+
+输出文件：
+
+- `data/real/processed/pytest_processed_1_problem_level_v1.csv`
+- `data/real/processed/pytest_processed_1_problem_level_v1_stats.json`
+
+## 训练
+
+```bash
+python -m src.train --config configs/real_problem_level_v1.yaml
+```
+
+训练完成后，主要产物在 `artifacts/outputs_real_problem_level_v1/`：
+
+- `best_model/`
+- `train_metrics.json`
+- `valid_metrics.json`
+- `test_metrics.json`
+- `valid_classification_report.json`
+- `test_classification_report.json`
+- `valid_confusion_matrix.csv`
+- `test_confusion_matrix.csv`
+- `label_mapping.json`
+- `resolved_config.yaml`
+
+## 评估
+
+```bash
+python -m src.evaluate --config configs/real_problem_level_v1.yaml --model-path artifacts/outputs_real_problem_level_v1/best_model --split test
+```
+
+## 预测
+
+单条预测：
+
+```bash
+python -m src.predict --config configs/real_problem_level_v1.yaml --model-path artifacts/outputs_real_problem_level_v1/best_model --text "主变压器预防性试验项目未按标准要求全部完成"
+```
+
+批量预测：
+
+```bash
+python -m src.predict --config configs/real_problem_level_v1.yaml --model-path artifacts/outputs_real_problem_level_v1/best_model --input-file data/real/processed/pytest_processed_1_problem_level_v1.csv --output-file artifacts/predictions_real_problem_level_v1/predictions.csv
+```
+
+## 人工复核表
+
+批量预测 CSV 更适合程序读取。如果要交给人工复核，可以导出 Excel 版复核表：
+
+```bash
+python -m src.export_review_sheet --input-file artifacts/predictions_real_problem_level_v1/predictions_for_review.csv --output-file artifacts/predictions_real_problem_level_v1/predictions_for_review_human.xlsx
+```
+
+Excel 中包含：
+
+- `summary`：复核统计
+- `need_review`：只包含低置信度、建议人工复核的样本
+- `all_predictions`：全部预测结果
+
+如果输入文件已经经过知识图谱关联增强，复核表还会包含：
+
+- 关联监督要点
+- 关联标准依据
+- 关联监督要求
+- 修订需求类型
+- 修订优先级
+- 修订需求判定原因
+
+## 决策增强
+
+在已有预测结果上补充问题类别、优先级和优化建议：
+
+```bash
+python -m src.enrich_predictions --config configs/real_problem_level_v1.yaml --input-file artifacts/predictions_real_problem_level_v1/predictions.csv --output-file outputs/predictions_enriched.csv
+```
+
+该步骤会调用项目内置的问题类别模型配置和模型产物：
+
+- `configs/real_problem_category_v1.yaml`
+- `artifacts/outputs_real_problem_category_v1/best_model`
+
+输出：
+
+- `pred_level`
+- `pred_category`
+- `priority_score`
+- `priority_label`
+- `priority_reason`
+- `suggestion`
+- `recommended_action`
+
+## 接入课题二知识图谱
+
+课题二代码位于根目录的 `trustworthy-tech-kg/`，当前模型侧第一版只消费其离线图谱文件：
+
+```text
+../trustworthy-tech-kg/trustworthy-tech-kg/output/kg_graph.json
+```
+
+在决策增强结果上关联课题二监督要点、标准文件和监督要求，并生成标准修订优先级：
+
+```bash
+python -m src.enrich_with_kg --config configs/real_problem_level_v1.yaml --input-file outputs/predictions_enriched.csv --kg-graph ../trustworthy-tech-kg/trustworthy-tech-kg/output/kg_graph.json --output-file outputs/predictions_kg_linked.csv --standard-report outputs/standard_revision_priority.csv --markdown-report outputs/kg_revision_report.md --top-k 3 --min-score 0.18
+```
+
+主要输出：
+
+- `outputs/predictions_kg_linked.csv`：问题级图谱关联与修订需求识别结果
+- `outputs/standard_revision_priority.csv`：标准级修订优先级排序
+- `outputs/kg_revision_report.md`：验证报告，包含匹配率、未匹配原因、Top 标准和典型样本
+- `outputs/predictions_kg_linked_human.xlsx`：人工复核 Excel，可由 `src.export_review_sheet` 导出
+
+新增问题级字段包括：
+
+- `kg_match_status`
+- `kg_match_score`
+- `kg_point_id`
+- `kg_point_text`
+- `kg_project`
+- `kg_stage`
+- `kg_severity`
+- `kg_standard_refs`
+- `kg_requirement_texts`
+- `revision_need`
+- `revision_need_type`
+- `revision_priority_score`
+- `revision_priority_label`
+- `revision_reason`
+
+当前课题二图谱主要覆盖 `组合电器` 和 `隔离开关`。其他设备会标记为 `kg_match_status=unsupported_equipment`，不会强行低置信度匹配。
+
+详细说明见：
+
+- `docs/kg_revision_integration.md`
+
+## 反馈回流
+
+```bash
+python -m src.prepare_feedback_retrain --config configs/real_problem_level_v1.yaml --feedback-file artifacts/predictions_real_problem_level_v1/predictions.csv --output-file artifacts/feedback_real_problem_level_v1/retrain_dataset.csv
+```
+
+## 图谱导出
+
+```bash
+python -m src.export_graph_records --config configs/real_problem_level_v1.yaml --input-file data/real/processed/pytest_processed_1_problem_level_v1.csv
+```
+
+如果输入文件为 `outputs/predictions_kg_linked.csv`，导出的 JSONL 会同时包含课题二知识图谱关联字段和标准修订需求字段：
+
+```bash
+python -m src.export_graph_records --config configs/real_problem_level_v1.yaml --input-file outputs/predictions_kg_linked.csv --output-file outputs/graph_records_kg_linked_from_predictions.jsonl
+```
+
+## 测试
+
+知识图谱关联与标准修订优先级相关单元测试：
+
+```bash
+python -m unittest tests.test_kg_revision -v
+```
+
+本轮已验证：
+
+- `kg_graph.json` 解析
+- 已知监督要点匹配
+- 非课题二覆盖设备识别
+- 修订需求规则
+- 标准修订优先级聚合
+
+## 可移植性约定
+
+- 所有配置路径默认使用项目内相对路径
+- 原始真实数据统一放在 `data/real/raw/`
+- 训练产物统一放在 `artifacts/`
+- 不要在源码里写死本地磁盘路径

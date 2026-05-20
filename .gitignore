@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.pyo
+.pytest_cache/
+
+# Virtual environments
+.venv/
+.venv_local/
+.conda_gpu312/
+venv/
+env/
+
+# Local/editor
+.cursor/
+.vscode/
+
+# Large generated artifacts and model weights
+artifacts/
+outputs/
+*.safetensors
+*.pt
+*.pth
+*.bin
+*.onnx
+*.ckpt
+*.log
+
+# OS
+Thumbs.db
+.DS_Store
