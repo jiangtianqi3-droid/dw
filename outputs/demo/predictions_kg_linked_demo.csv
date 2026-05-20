@@ -1,0 +1,7 @@
+problem_id,问题描述,设备类型,监督专业,所属单位,地区,predicted_category,predicted_severity,category_confidence,severity_confidence,need_review,review_reason,kg_standard_id,kg_standard_name,kg_clause_id,kg_clause_title,kg_relation_type,kg_relation_confidence,revision_demand,standard_revision_priority,standard_revision_priority_score,standard_revision_priority_reason
+D001,GIS接地线未按条款要求采用螺栓连接,组合电器,电气设备性能,单位A,华东,安装质量,重大,0.91,0.88,False,,STD-GIS-001,组合电器接地监督标准,CLAUSE-GIS-4.3.10,接地连接方式要求,related_to_clause,0.88,True,高,88,关联条款对螺栓连接要求明确且现场重复发生
+D002,GIS接地母线连接记录缺失且整改措施不完整,组合电器,电气设备性能,单位B,华东,资料记录,较大,0.86,0.82,False,,STD-GIS-001,组合电器接地监督标准,CLAUSE-GIS-4.3.10,接地连接方式要求,related_to_clause,0.82,True,中高,78,多次问题指向同一接地连接条款
+D003,现场空间不足导致GIS接地线无法按标准方式连接,组合电器,工程设计,单位C,华中,设计适用性,重大,0.89,0.84,False,,STD-GIS-001,组合电器接地监督标准,CLAUSE-GIS-4.3.10,接地连接方式要求,related_to_clause,0.8,标准表述歧义,中高,76,特殊工况下条款适用边界需复核
+D004,隔离开关铭牌参数与出厂资料不一致,隔离开关,电气设备性能,单位D,华北,资料记录,一般,0.76,0.74,False,,STD-DS-002,隔离开关资料监督标准,CLAUSE-DS-2.1,铭牌与资料一致性,related_to_clause,0.62,False,低,28,问题主要属于执行落实
+D005,特殊运行环境下标准未明确组合电器验收适用要求,组合电器,验收管理,单位E,华南,标准适用性,较大,0.81,0.79,False,,STD-GENERAL-003,通用设备验收监督标准,,,related_to_standard,0.72,标准缺失,中高,70,缺少特殊运行环境适用条款
+D006,GIS接地整改描述较模糊需专家确认条款关联,组合电器,电气设备性能,单位F,西南,安装质量,较大,0.52,0.58,True,类别和等级置信度偏低,STD-GIS-001,组合电器接地监督标准,CLAUSE-GIS-4.3.10,接地连接方式要求,related_to_clause,0.55,需人工判断,中,55,低置信度样本需人工复核后确认

@@ -348,7 +348,8 @@ def _aggregate_group(records: list[dict[str, Any]], total_count: int) -> dict[st
     organization_count = _distinct_count(records, "organization")
     region_count = _distinct_count(records, "region")
 
-    frequency_score = _clip(count / max(10.0, min(total_count, 10.0)))
+    frequency_denominator = max(3, min(total_count, 10))
+    frequency_score = _clip(count / frequency_denominator)
     severity_score = _clip((high_count + 0.6 * max(0, medium_high_count - high_count)) / count)
     revision_demand_score = _clip(revision_count / count)
     relation_confidence_score = _clip(avg_relation_confidence)

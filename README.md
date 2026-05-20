@@ -225,6 +225,8 @@ python -m src.enrich_with_kg --config configs/real_problem_level_v1.yaml --input
 python -m src.aggregate_standard_revision_priority --input outputs/predictions_kg_linked.csv --output outputs/standard_revision_priority_summary.csv --json-output outputs/standard_revision_priority_summary.json --report-output outputs/standard_revision_priority_report.md --top-k 50 --min-problem-count 1
 ```
 
+未传入 `--input` 时，默认读取 `outputs/predictions_kg_linked.csv`。
+
 主要输出：
 
 - `outputs/standard_revision_priority_summary.csv`：标准/条款级修订优先级排行榜

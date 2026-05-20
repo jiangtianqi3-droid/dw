@@ -13,7 +13,7 @@ from src.utils.standard_revision_aggregation import (
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Aggregate standard/clause-level revision priority.")
-    parser.add_argument("--input", type=str, default="outputs/predictions_kg_enriched.csv", help="Input CSV/JSONL/XLSX.")
+    parser.add_argument("--input", type=str, default="outputs/predictions_kg_linked.csv", help="Input CSV/JSONL/XLSX.")
     parser.add_argument(
         "--output",
         type=str,

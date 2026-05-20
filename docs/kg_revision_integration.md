@@ -189,6 +189,8 @@ aggregated_priority_score =
 
 各子分数限制在 0 到 1 之间，最终分数限制在 0 到 100 之间。等级划分如下：
 
+其中 `frequency_score = min(count / max(3, min(total_count, 10)), 1.0)`，用于让小样本演示数据中的多问题聚集也能被合理体现，同时保持规则简单可解释。
+
 - `score >= 80`：高优先级
 - `60 <= score < 80`：中高优先级
 - `40 <= score < 60`：中优先级
@@ -205,6 +207,8 @@ aggregated_priority_score =
   --top-k 50 `
   --min-problem-count 1
 ```
+
+未显式传入 `--input` 时，CLI 默认读取 `outputs/predictions_kg_linked.csv`。
 
 报告会输出总关联问题数、参与聚合的标准数、参与聚合的条款数、高优先级数量、中高优先级数量、Top 10 标准/条款、缺失字段说明，以及低置信度或需人工复核说明。
 
