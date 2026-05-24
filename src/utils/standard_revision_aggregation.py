@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 import re
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -36,6 +37,19 @@ AGGREGATION_OUTPUT_COLUMNS = [
     "aggregated_priority_reason",
     "representative_problem_ids",
     "representative_problem_texts",
+    "standard_id",
+    "standard_name",
+    "standard_no",
+    "clause_id",
+    "clause_no",
+    "problem_count",
+    "high_risk_problem_count",
+    "avg_match_confidence",
+    "relation_type_distribution",
+    "revision_need_type_distribution",
+    "revision_priority_score",
+    "revision_priority_level",
+    "revision_reason_summary",
 ]
 
 
@@ -52,14 +66,18 @@ FIELD_ALIASES: dict[str, list[str]] = {
     "severity_confidence": ["severity_confidence", "level_confidence", "confidence"],
     "need_review": ["need_review", "need_manual_review"],
     "review_reason": ["review_reason"],
-    "kg_standard_id": ["kg_standard_id", "standard_id"],
-    "kg_standard_name": ["kg_standard_name", "standard_name"],
+    "kg_standard_id": ["kg_standard_id", "standard_id", "related_standard_id"],
+    "kg_standard_name": ["kg_standard_name", "standard_name", "related_standard_name"],
+    "standard_no": ["standard_no", "related_standard_no"],
+    "standard_status": ["standard_status"],
     "kg_standard_refs": ["kg_standard_refs", "standard_ref", "standard_refs"],
-    "kg_clause_id": ["kg_clause_id", "clause_id"],
-    "kg_clause_title": ["kg_clause_title", "clause_title"],
-    "kg_relation_type": ["kg_relation_type"],
-    "kg_relation_confidence": ["kg_relation_confidence", "kg_match_score", "relation_confidence"],
+    "kg_clause_id": ["kg_clause_id", "clause_id", "related_clause_id"],
+    "kg_clause_title": ["kg_clause_title", "clause_title", "related_clause_text"],
+    "clause_no": ["clause_no", "related_clause_no"],
+    "kg_relation_type": ["kg_relation_type", "problem_standard_relation_type"],
+    "kg_relation_confidence": ["kg_relation_confidence", "kg_match_score", "relation_confidence", "standard_match_confidence"],
     "revision_demand": ["revision_demand", "revision_need"],
+    "revision_need_type": ["revision_need_type"],
     "standard_revision_priority": ["standard_revision_priority", "revision_priority_label"],
     "standard_revision_priority_score": [
         "standard_revision_priority_score",
@@ -225,8 +243,13 @@ def _expand_records(dataframe: pd.DataFrame) -> list[dict[str, Any]]:
             "severity_confidence": _score_0_to_1(_get_value(record, "severity_confidence")),
             "kg_clause_id": _get_value(record, "kg_clause_id"),
             "kg_clause_title": "",
+            "standard_no": _get_value(record, "standard_no"),
+            "standard_status": _get_value(record, "standard_status"),
+            "clause_no": _get_value(record, "clause_no"),
+            "kg_relation_type": _get_value(record, "kg_relation_type"),
             "kg_relation_confidence": _score_0_to_1(_get_value(record, "kg_relation_confidence")),
             "revision_demand": _normalize_bool(_get_value(record, "revision_demand")),
+            "revision_need_type": _get_value(record, "revision_need_type"),
             "standard_revision_priority_score": _score_0_to_1(_get_value(record, "standard_revision_priority_score")),
         }
         if base["kg_clause_id"]:
@@ -286,6 +309,35 @@ def _representative_records(records: list[dict[str, Any]], limit: int = 3) -> li
     return ranked[:limit]
 
 
+def _distribution(records: list[dict[str, Any]], field: str) -> str:
+    counter = Counter(normalize_scalar(record.get(field)) for record in records if normalize_scalar(record.get(field)))
+    return json.dumps(dict(counter), ensure_ascii=False, sort_keys=True)
+
+
+def _context_priority(records: list[dict[str, Any]]) -> float:
+    status_score_map = {"待修订": 1.0, "废止": 0.8, "现行": 0.45, "在运": 0.45}
+    relation_score_map = {
+        "standard_missing": 1.0,
+        "standard_lagging": 0.9,
+        "standard_conflict": 0.85,
+        "standard_ambiguous": 0.8,
+        "manual_review": 0.45,
+        "standard_execution": 0.3,
+    }
+    revision_score_map = {
+        "标准缺失": 1.0,
+        "适用性不足": 0.9,
+        "标准冲突": 0.85,
+        "标准表述歧义": 0.8,
+        "需人工判断": 0.45,
+        "执行落实问题": 0.25,
+    }
+    status_score = max((status_score_map.get(normalize_scalar(record.get("standard_status")), 0.0) for record in records), default=0.0)
+    relation_score = max((relation_score_map.get(normalize_scalar(record.get("kg_relation_type")), 0.0) for record in records), default=0.0)
+    revision_score = max((revision_score_map.get(normalize_scalar(record.get("revision_need_type")), 0.0) for record in records), default=0.0)
+    return _clip(0.35 * status_score + 0.35 * relation_score + 0.30 * revision_score)
+
+
 def _make_reason(
     count: int,
     high_count: int,
@@ -341,7 +393,7 @@ def _aggregate_group(records: list[dict[str, Any]], total_count: int) -> dict[st
     priority_scores = [record.get("standard_revision_priority_score", 0.0) for record in records]
     avg_relation_confidence = _mean(relation_confidences)
     max_relation_confidence = max(relation_confidences or [0.0])
-    avg_existing_priority = _mean(priority_scores)
+    avg_existing_priority = max(_mean(priority_scores), _context_priority(records))
 
     device_count = _distinct_count(records, "device_type")
     major_count = _distinct_count(records, "major")
@@ -409,6 +461,28 @@ def _aggregate_group(records: list[dict[str, Any]], total_count: int) -> dict[st
         ),
         "representative_problem_ids": "；".join(record["problem_id"] for record in representatives),
         "representative_problem_texts": "；".join(record["problem_text"] for record in representatives if record["problem_text"]),
+        "standard_id": first["kg_standard_id"],
+        "standard_name": first["kg_standard_name"],
+        "standard_no": first.get("standard_no", ""),
+        "clause_id": first["kg_clause_id"],
+        "clause_no": first.get("clause_no", ""),
+        "problem_count": count,
+        "high_risk_problem_count": high_count,
+        "avg_match_confidence": round(avg_relation_confidence, 4),
+        "relation_type_distribution": _distribution(records, "kg_relation_type"),
+        "revision_need_type_distribution": _distribution(records, "revision_need_type"),
+        "revision_priority_score": score,
+        "revision_priority_level": _priority_level(score),
+        "revision_reason_summary": _make_reason(
+            count=count,
+            high_count=high_count,
+            medium_high_count=medium_high_count,
+            revision_count=revision_count,
+            avg_confidence=avg_relation_confidence,
+            coverage_score=coverage_score,
+            uncertainty_penalty=uncertainty_penalty,
+            score=score,
+        ),
     }
 
 

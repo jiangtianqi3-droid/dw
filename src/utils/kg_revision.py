@@ -79,6 +79,17 @@ class KGPoint:
     project: str
     standards: tuple[str, ...] = field(default_factory=tuple)
     requirements: tuple[str, ...] = field(default_factory=tuple)
+    standard_id: str = ""
+    standard_name: str = ""
+    standard_no: str = ""
+    standard_status: str = ""
+    domain: str = ""
+    risk_level: str = ""
+    clause_id: str = ""
+    clause_no: str = ""
+    clause_text: str = ""
+    keywords: tuple[str, ...] = field(default_factory=tuple)
+    problem_category: str = ""
 
     @property
     def searchable_text(self) -> str:
@@ -90,6 +101,13 @@ class KGPoint:
                 self.project,
                 self.stage,
                 self.severity,
+                self.standard_name,
+                self.standard_no,
+                self.standard_status,
+                self.clause_no,
+                self.clause_text,
+                " ".join(self.keywords),
+                self.problem_category,
                 " ".join(self.standards),
                 " ".join(self.requirements),
             ]
@@ -173,10 +191,70 @@ def _node_text(node: dict[str, Any]) -> str:
     return normalize_scalar(node.get("full_text")) or normalize_scalar(node.get("label"))
 
 
+def _load_standard_clause_index(data: dict[str, Any]) -> KGIndex:
+    standards = {
+        normalize_scalar(item.get("standard_id")): item
+        for item in data.get("standards", [])
+        if normalize_scalar(item.get("standard_id"))
+    }
+    supported_equipment = {
+        normalize_scalar(item.get("equipment_type"))
+        for item in [*data.get("standards", []), *data.get("clauses", [])]
+        if normalize_scalar(item.get("equipment_type"))
+    }
+
+    points: list[KGPoint] = []
+    for clause in data.get("clauses", []):
+        clause_id = normalize_scalar(clause.get("clause_id"))
+        standard_id = normalize_scalar(clause.get("standard_id"))
+        standard = standards.get(standard_id, {})
+        standard_name = normalize_scalar(standard.get("standard_name"))
+        standard_no = normalize_scalar(standard.get("standard_no"))
+        standard_status = normalize_scalar(standard.get("standard_status"))
+        equipment = normalize_scalar(clause.get("equipment_type")) or normalize_scalar(standard.get("equipment_type"))
+        problem_category = normalize_scalar(clause.get("problem_category"))
+        clause_no = normalize_scalar(clause.get("clause_no"))
+        clause_text = normalize_scalar(clause.get("clause_text"))
+        keywords = tuple(
+            normalize_scalar(item)
+            for item in clause.get("keywords", [])
+            if normalize_scalar(item)
+        )
+        standard_ref = " ".join(item for item in [standard_no, standard_name, standard_status] if item)
+        points.append(
+            KGPoint(
+                id=clause_id or f"{standard_id}_{clause_no}",
+                label=" ".join(item for item in [clause_no, clause_text[:80]] if item),
+                full_text=clause_text,
+                equipment=equipment,
+                stage=normalize_scalar(clause.get("stage")),
+                severity=normalize_scalar(standard.get("risk_level")),
+                project=problem_category,
+                standards=(standard_ref or standard_name or standard_id,),
+                requirements=(clause_text,) if clause_text else tuple(),
+                standard_id=standard_id,
+                standard_name=standard_name,
+                standard_no=standard_no,
+                standard_status=standard_status,
+                domain=normalize_scalar(standard.get("domain")),
+                risk_level=normalize_scalar(standard.get("risk_level")),
+                clause_id=clause_id,
+                clause_no=clause_no,
+                clause_text=clause_text,
+                keywords=keywords,
+                problem_category=problem_category,
+            )
+        )
+    return KGIndex(points=points, supported_equipment=supported_equipment)
+
+
 def load_kg_index(path: str | Path) -> KGIndex:
     graph_path = Path(path)
     with graph_path.open("r", encoding="utf-8") as file:
         data = json.load(file)
+
+    if data.get("standards") is not None or data.get("clauses") is not None:
+        return _load_standard_clause_index(data)
 
     nodes = data.get("nodes", [])
     links = data.get("links", data.get("edges", []))
@@ -249,8 +327,11 @@ def load_kg_index(path: str | Path) -> KGIndex:
 def resolve_supported_equipment(record: dict[str, Any], supported_equipment: set[str]) -> str:
     candidates = [
         normalize_scalar(record.get("device_type")),
+        normalize_scalar(record.get("设备类型")),
+        normalize_scalar(record.get("equipment_type")),
         normalize_scalar(record.get("rule_name")),
         normalize_scalar(record.get("text")),
+        normalize_scalar(record.get("问题描述")),
     ]
     for candidate in candidates:
         for equipment in sorted(supported_equipment, key=len, reverse=True):
@@ -263,6 +344,7 @@ def _record_stage(record: dict[str, Any]) -> str:
     return normalize_stage(
         normalize_scalar(record.get("stage_name"))
         or normalize_scalar(record.get("supervision_stage"))
+        or normalize_scalar(record.get("监督环节"))
         or normalize_scalar(record.get("problem_stage"))
     )
 
@@ -270,15 +352,36 @@ def _record_stage(record: dict[str, Any]) -> str:
 def _record_level(record: dict[str, Any]) -> str:
     return (
         normalize_scalar(record.get("pred_level"))
+        or normalize_scalar(record.get("predicted_severity"))
+        or normalize_scalar(record.get("预测严重程度"))
         or normalize_scalar(record.get("rule_level"))
         or normalize_scalar(record.get("label"))
         or normalize_scalar(record.get("problem_level"))
     )
 
 
+def _record_text(record: dict[str, Any]) -> str:
+    return (
+        normalize_scalar(record.get("text"))
+        or normalize_scalar(record.get("问题描述"))
+        or normalize_scalar(record.get("problem_text"))
+        or normalize_scalar(record.get("issue_text"))
+    )
+
+
+def _record_category(record: dict[str, Any]) -> str:
+    return (
+        normalize_scalar(record.get("pred_category"))
+        or normalize_scalar(record.get("predicted_category"))
+        or normalize_scalar(record.get("预测问题类别"))
+        or normalize_scalar(record.get("problem_category"))
+    )
+
+
 def _match_point(record: dict[str, Any], point: KGPoint, row_stage: str) -> KGMatch:
     checkpoint = normalize_scalar(record.get("checkpoint_text"))
-    issue_text = normalize_scalar(record.get("text"))
+    issue_text = _record_text(record)
+    category = _record_category(record)
     opinion_text = " ".join(
         item
         for item in [
@@ -296,14 +399,19 @@ def _match_point(record: dict[str, Any], point: KGPoint, row_stage: str) -> KGMa
     rule_score = text_similarity(rule_name, " ".join(point.standards))
     stage_score = 1.0 if row_stage and point.stage == row_stage else 0.0
     severity_score = 1.0 if _record_level(record) and point.severity == _record_level(record) else 0.0
+    category_score = 1.0 if category and point.problem_category and category == point.problem_category else text_similarity(category, point.problem_category)
+    keyword_hits = sum(1 for keyword in point.keywords if keyword and keyword in issue_text)
+    keyword_score = min(keyword_hits / max(len(point.keywords), 1), 1.0) if point.keywords else 0.0
 
     score = (
-        0.50 * checkpoint_score
-        + 0.24 * issue_score
-        + 0.10 * opinion_score
-        + 0.06 * rule_score
-        + 0.06 * stage_score
-        + 0.04 * severity_score
+        0.34 * checkpoint_score
+        + 0.26 * issue_score
+        + 0.14 * keyword_score
+        + 0.08 * category_score
+        + 0.06 * opinion_score
+        + 0.05 * rule_score
+        + 0.04 * stage_score
+        + 0.03 * severity_score
     )
     exact_reason = ""
     checkpoint_clean = _clean_for_similarity(checkpoint)
@@ -311,11 +419,15 @@ def _match_point(record: dict[str, Any], point: KGPoint, row_stage: str) -> KGMa
     if checkpoint_clean and checkpoint_clean in point_clean:
         score = max(score, 0.92)
         exact_reason = "监督要点文本直接命中"
+    if point.clause_id and keyword_hits and category_score >= 0.8:
+        score = max(score, min(0.62 + 0.05 * keyword_hits, 0.85))
 
     reason_parts = [
         exact_reason,
         f"checkpoint={checkpoint_score:.2f}",
         f"issue={issue_score:.2f}",
+        f"keywords={keyword_score:.2f}",
+        f"category={category_score:.2f}",
         f"stage={stage_score:.0f}",
         f"severity={severity_score:.0f}",
     ]
@@ -328,12 +440,14 @@ def match_record_to_kg(
     top_k: int = 3,
     min_score: float = 0.18,
 ) -> tuple[str, list[KGMatch]]:
+    if not kg_index.points:
+        return "no_kg_data", []
     equipment = resolve_supported_equipment(record, kg_index.supported_equipment)
-    if not equipment:
+    if kg_index.supported_equipment and not equipment:
         return "unsupported_equipment", []
 
     row_stage = _record_stage(record)
-    candidates = [point for point in kg_index.points if point.equipment == equipment]
+    candidates = [point for point in kg_index.points if not equipment or point.equipment == equipment]
     matches = sorted(
         (_match_point(record, point, row_stage=row_stage) for point in candidates),
         key=lambda item: item.score,
@@ -354,11 +468,15 @@ def classify_revision_need(record: dict[str, Any], match_status: str, best_match
         normalize_scalar(record.get(field))
         for field in [
             "text",
+            "问题描述",
+            "problem_text",
             "supervision_opinion",
             "actual_fix",
             "root_cause_analysis",
             "checkpoint_text",
             "pred_category",
+            "predicted_category",
+            "预测问题类别",
         ]
     )
     standard_text = ""
@@ -369,7 +487,9 @@ def classify_revision_need(record: dict[str, Any], match_status: str, best_match
         need_type = "需人工判断"
         revision_need = False
         reason = "未能稳定关联到课题二图谱标准条款，建议人工判断是否形成修订需求。"
-    elif _contains_any(text, ["标准缺失", "无标准", "没有标准", "无依据", "缺少依据", "未规定"]):
+    elif _contains_any(text, ["标准缺失", "无标准", "没有标准", "无依据", "缺少依据", "未规定"]) or (
+        "标准" in text and _contains_any(text, ["缺少", "未覆盖"])
+    ):
         need_type = "标准缺失"
         revision_need = True
         reason = "问题描述或整改意见出现标准缺失/依据不足信号。"
@@ -385,6 +505,10 @@ def classify_revision_need(record: dict[str, Any], match_status: str, best_match
         need_type = "适用性不足"
         revision_need = True
         reason = "问题与现场工况、设计选型或标准适用性相关，建议复核标准适用范围。"
+    elif best_match.point.standard_status in {"待修订", "废止"}:
+        need_type = "适用性不足"
+        revision_need = True
+        reason = f"关联标准状态为{best_match.point.standard_status}，需复核当前条款适用性。"
     elif _contains_any(text, ["未按", "未见", "未进行", "未采用", "不符合", "不到位", "漏", "错位"]):
         need_type = "执行落实问题"
         revision_need = False
@@ -395,6 +519,8 @@ def classify_revision_need(record: dict[str, Any], match_status: str, best_match
         reason = "当前规则未发现明确修订信号，建议结合人工复核确认。"
 
     priority_score = compute_revision_priority(record, revision_need, best_match.score if best_match else 0.0)
+    if best_match is not None and revision_need and best_match.point.standard_status in {"待修订", "废止"}:
+        priority_score = max(priority_score, 0.76)
     return {
         "revision_need": revision_need,
         "revision_need_type": need_type,
@@ -436,6 +562,38 @@ def priority_label(score: float) -> str:
     return "低"
 
 
+def priority_label_en(score: float) -> str:
+    if score >= 0.75:
+        return "high"
+    if score >= 0.55:
+        return "medium"
+    return "low"
+
+
+def infer_problem_standard_relation_type(match_status: str, need_type: str, best_match: KGMatch | None) -> str:
+    if match_status != "matched" or best_match is None:
+        return "unmatched"
+    if need_type == "标准缺失":
+        return "standard_missing"
+    if need_type == "标准表述歧义":
+        return "standard_ambiguous"
+    if need_type == "标准冲突":
+        return "standard_conflict"
+    if need_type == "适用性不足" or best_match.point.standard_status in {"待修订", "废止"}:
+        return "standard_lagging"
+    if need_type == "执行落实问题":
+        return "standard_execution"
+    return "manual_review"
+
+
+def graph_node_id(prefix: str, value: Any) -> str:
+    text = normalize_scalar(value)
+    if not text:
+        return ""
+    cleaned = re.sub(r"[^0-9A-Za-z\u4e00-\u9fff_.-]+", "_", text).strip("_")
+    return f"{prefix}:{cleaned}"
+
+
 def _matches_to_json(matches: list[KGMatch]) -> str:
     payload = [
         {
@@ -462,7 +620,16 @@ def enrich_dataframe_with_kg(
         match_status, matches = match_record_to_kg(record, kg_index, top_k=top_k, min_score=min_score)
         best_match = matches[0] if matches else None
         revision = classify_revision_need(record, match_status, best_match)
+        relation_type = infer_problem_standard_relation_type(match_status, revision["revision_need_type"], best_match)
+        priority_initial = priority_label_en(revision["revision_priority_score"])
         row = dict(record)
+        problem_id = (
+            normalize_scalar(record.get("problem_id"))
+            or normalize_scalar(record.get("sample_id"))
+            or normalize_scalar(record.get("issue_id"))
+            or f"problem_{len(rows) + 1}"
+        )
+        row["problem_id"] = problem_id
         if best_match is None:
             row.update(
                 {
@@ -476,10 +643,35 @@ def enrich_dataframe_with_kg(
                     "kg_standard_refs": "",
                     "kg_requirement_texts": "",
                     "kg_top_matches": "[]",
+                    "related_standard_id": "",
+                    "related_standard_name": "",
+                    "related_standard_no": "",
+                    "related_clause_id": "",
+                    "related_clause_no": "",
+                    "related_clause_text": "",
+                    "standard_match_confidence": 0.0,
+                    "problem_standard_relation_type": relation_type,
+                    "standard_status": "",
+                    "standard_revision_trigger_evidence": revision["revision_reason"],
+                    "standard_revision_priority_initial": priority_initial,
+                    "graph_problem_node_id": graph_node_id("Problem", problem_id),
+                    "graph_standard_node_id": "",
+                    "graph_clause_node_id": "",
+                    "graph_relation_type": "UNMATCHED",
+                    "kg_standard_id": "",
+                    "kg_standard_name": "",
+                    "kg_clause_id": "",
+                    "kg_clause_title": "",
+                    "kg_relation_type": relation_type,
+                    "kg_relation_confidence": 0.0,
                 }
             )
         else:
             point = best_match.point
+            related_standard_id = point.standard_id or (point.standards[0] if point.standards else "")
+            related_standard_name = point.standard_name or (point.standards[0] if point.standards else "")
+            related_clause_id = point.clause_id or point.id
+            related_clause_text = point.clause_text or point.full_text
             row.update(
                 {
                     "kg_match_status": match_status,
@@ -492,6 +684,27 @@ def enrich_dataframe_with_kg(
                     "kg_standard_refs": "；".join(point.standards),
                     "kg_requirement_texts": " || ".join(point.requirements),
                     "kg_top_matches": _matches_to_json(matches),
+                    "related_standard_id": related_standard_id,
+                    "related_standard_name": related_standard_name,
+                    "related_standard_no": point.standard_no,
+                    "related_clause_id": related_clause_id,
+                    "related_clause_no": point.clause_no,
+                    "related_clause_text": related_clause_text,
+                    "standard_match_confidence": best_match.score,
+                    "problem_standard_relation_type": relation_type,
+                    "standard_status": point.standard_status,
+                    "standard_revision_trigger_evidence": revision["revision_reason"],
+                    "standard_revision_priority_initial": priority_initial,
+                    "graph_problem_node_id": graph_node_id("Problem", problem_id),
+                    "graph_standard_node_id": graph_node_id("Standard", related_standard_id),
+                    "graph_clause_node_id": graph_node_id("Clause", related_clause_id),
+                    "graph_relation_type": "PROBLEM_MATCHES_CLAUSE",
+                    "kg_standard_id": related_standard_id,
+                    "kg_standard_name": related_standard_name,
+                    "kg_clause_id": related_clause_id,
+                    "kg_clause_title": point.clause_no or related_clause_text[:40],
+                    "kg_relation_type": relation_type,
+                    "kg_relation_confidence": best_match.score,
                 }
             )
         row.update(revision)

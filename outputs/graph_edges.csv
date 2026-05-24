@@ -1,0 +1,54 @@
+edge_id,source_id,target_id,relation_type,confidence,relation_reason
+Edge_0a3405b311be,Problem:SP-001,Clause:CLAUSE-GIS-001,PROBLEM_MATCHES_CLAUSE,0.85,问题更偏向标准或监督要求执行不到位，优先纳入整改闭环。 关联标准依据：Q/GDW-SAMPLE-001 组合电器安装与接地监督标准 现行 GIS接地线应与接地母线采用螺栓连接方式，连接点应可靠防松并保留检查记录。
+Edge_60772ed11190,Clause:CLAUSE-GIS-001,Standard:STD-GIS-001,CLAUSE_BELONGS_TO_STANDARD,,
+Edge_e9d7632846b5,Problem:SP-001,ProblemCategory_77160097e82d,PROBLEM_HAS_CATEGORY,,
+Edge_037283ec495d,Problem:SP-001,Equipment_b8b96da032b8,PROBLEM_INVOLVES_EQUIPMENT,,
+Edge_f11f01c78ff4,Problem:SP-001,RevisionNeed_77678a4b7941,PROBLEM_TRIGGERS_REVISION_NEED,,
+Edge_57adab6575d2,Standard:STD-GIS-001,RevisionPriority_50106b2b9323,STANDARD_HAS_REVISION_PRIORITY,,
+Edge_61a622049be8,Problem:SP-002,Clause:CLAUSE-GIS-002,PROBLEM_MATCHES_CLAUSE,0.85,问题更偏向标准或监督要求执行不到位，优先纳入整改闭环。 关联标准依据：Q/GDW-SAMPLE-001 组合电器安装与接地监督标准 现行 组合电器气室压力、密封状态和异常告警应在投运前完成核查，发现渗漏应完成整改。
+Edge_92c6fe79750b,Clause:CLAUSE-GIS-002,Standard:STD-GIS-001,CLAUSE_BELONGS_TO_STANDARD,,
+Edge_e196924cdd38,Problem:SP-002,ProblemCategory_5c28c6cb4f63,PROBLEM_HAS_CATEGORY,,
+Edge_f42632ce2157,Problem:SP-002,Equipment_b8b96da032b8,PROBLEM_INVOLVES_EQUIPMENT,,
+Edge_cfcee2612b70,Problem:SP-002,RevisionNeed_77678a4b7941,PROBLEM_TRIGGERS_REVISION_NEED,,
+Edge_da03f05eec11,Problem:SP-003,Clause:CLAUSE-TRANS-001,PROBLEM_MATCHES_CLAUSE,0.85,当前规则未发现明确修订信号，建议结合人工复核确认。 关联标准依据：Q/GDW-SAMPLE-002 主变压器施工质量监督标准 在运 主变压器安装前应检查套管、油位、冷却装置和本体密封，缺陷未闭环不得进入下一工序。
+Edge_4e94d4c4c702,Clause:CLAUSE-TRANS-001,Standard:STD-TRANS-002,CLAUSE_BELONGS_TO_STANDARD,,
+Edge_bb84530385bd,Problem:SP-003,ProblemCategory_5c28c6cb4f63,PROBLEM_HAS_CATEGORY,,
+Edge_393e47b86890,Problem:SP-003,Equipment_ad97cc02a5d9,PROBLEM_INVOLVES_EQUIPMENT,,
+Edge_8d6f52e04aa2,Problem:SP-003,RevisionNeed_46f07ed73184,PROBLEM_TRIGGERS_REVISION_NEED,,
+Edge_b8c621137ef5,Standard:STD-TRANS-002,RevisionPriority_38096d377428,STANDARD_HAS_REVISION_PRIORITY,,
+Edge_7bf9b9c59ff0,Problem:SP-004,Clause:CLAUSE-TRANS-002,PROBLEM_MATCHES_CLAUSE,0.85,当前规则未发现明确修订信号，建议结合人工复核确认。 关联标准依据：Q/GDW-SAMPLE-002 主变压器施工质量监督标准 在运 变压器交接试验项目应按批准方案完成，试验报告、数据复核和异常处置记录应齐全。
+Edge_224325dc997f,Clause:CLAUSE-TRANS-002,Standard:STD-TRANS-002,CLAUSE_BELONGS_TO_STANDARD,,
+Edge_dd06e1705922,Problem:SP-004,ProblemCategory_d214ac8429fb,PROBLEM_HAS_CATEGORY,,
+Edge_1a627c215b61,Problem:SP-004,Equipment_ad97cc02a5d9,PROBLEM_INVOLVES_EQUIPMENT,,
+Edge_51f353d7f78a,Problem:SP-004,RevisionNeed_46f07ed73184,PROBLEM_TRIGGERS_REVISION_NEED,,
+Edge_db32d2ccb9af,Problem:SP-005,Clause:CLAUSE-ACCEPT-001,PROBLEM_MATCHES_CLAUSE,0.85,关联标准状态为待修订，需复核当前条款适用性。 关联标准依据：Q/GDW-SAMPLE-003 电力工程验收整改闭环管理标准 待修订 验收发现的问题应明确责任单位、整改时限、复验结论和闭环证据，逾期未闭环应升级管控。
+Edge_b9a050b34bf2,Clause:CLAUSE-ACCEPT-001,Standard:STD-ACCEPT-003,CLAUSE_BELONGS_TO_STANDARD,,
+Edge_fac5433c2b9a,Problem:SP-005,ProblemCategory_d214ac8429fb,PROBLEM_HAS_CATEGORY,,
+Edge_357e938db3c3,Problem:SP-005,Equipment_e0e7e69d2975,PROBLEM_INVOLVES_EQUIPMENT,,
+Edge_153cb05544e6,Problem:SP-005,RevisionNeed_e2b9f2511783,PROBLEM_TRIGGERS_REVISION_NEED,,
+Edge_f5230423faf5,Standard:STD-ACCEPT-003,RevisionPriority_218d8c9aaedd,STANDARD_HAS_REVISION_PRIORITY,,
+Edge_1a7069554c7a,Problem:SP-006,Clause:CLAUSE-ACCEPT-002,PROBLEM_MATCHES_CLAUSE,0.82,问题描述或整改意见出现标准缺失/依据不足信号。 关联标准依据：Q/GDW-SAMPLE-003 电力工程验收整改闭环管理标准 待修订 特殊工况、设计变更或现场条件变化导致原标准难以适用时，应形成标准适用性复核意见。
+Edge_a826f1bf3069,Clause:CLAUSE-ACCEPT-002,Standard:STD-ACCEPT-003,CLAUSE_BELONGS_TO_STANDARD,,
+Edge_dd8999438833,Problem:SP-006,ProblemCategory_d214ac8429fb,PROBLEM_HAS_CATEGORY,,
+Edge_06d2186095cc,Problem:SP-006,Equipment_e0e7e69d2975,PROBLEM_INVOLVES_EQUIPMENT,,
+Edge_373a74b9f79d,Problem:SP-006,RevisionNeed_18c16323e72e,PROBLEM_TRIGGERS_REVISION_NEED,,
+Edge_a97fef1e85c0,Problem:SP-007,Clause:CLAUSE-SAFE-001,PROBLEM_MATCHES_CLAUSE,0.85,关联标准状态为废止，需复核当前条款适用性。 关联标准依据：Q/GDW-SAMPLE-004 施工现场安全风险监督旧版标准 废止 高处作业、临边作业和交叉施工应设置隔离、防坠落和现场监护措施。
+Edge_472de489724d,Clause:CLAUSE-SAFE-001,Standard:STD-SAFE-004,CLAUSE_BELONGS_TO_STANDARD,,
+Edge_7ab632314bb7,Problem:SP-007,ProblemCategory_0079c61b34e6,PROBLEM_HAS_CATEGORY,,
+Edge_7836bf8c6522,Problem:SP-007,Equipment_d91fff61d4ab,PROBLEM_INVOLVES_EQUIPMENT,,
+Edge_8461cf89efcc,Problem:SP-007,RevisionNeed_e2b9f2511783,PROBLEM_TRIGGERS_REVISION_NEED,,
+Edge_c4d49f1230df,Standard:STD-SAFE-004,RevisionPriority_6980849cf010,STANDARD_HAS_REVISION_PRIORITY,,
+Edge_b1d2fa12f3fe,Problem:SP-008,Clause:CLAUSE-SAFE-002,PROBLEM_MATCHES_CLAUSE,0.82,关联标准状态为废止，需复核当前条款适用性。 关联标准依据：Q/GDW-SAMPLE-004 施工现场安全风险监督旧版标准 废止 动火、吊装和带电邻近作业应完成风险辨识、作业票审批和安全交底。
+Edge_817becb13ade,Clause:CLAUSE-SAFE-002,Standard:STD-SAFE-004,CLAUSE_BELONGS_TO_STANDARD,,
+Edge_795131994ecd,Problem:SP-008,ProblemCategory_0079c61b34e6,PROBLEM_HAS_CATEGORY,,
+Edge_2b6761198807,Problem:SP-008,Equipment_d91fff61d4ab,PROBLEM_INVOLVES_EQUIPMENT,,
+Edge_0baf0a0dfbeb,Problem:SP-008,RevisionNeed_e2b9f2511783,PROBLEM_TRIGGERS_REVISION_NEED,,
+Edge_15ffb157c30e,Problem:SP-009,Clause:CLAUSE-ACCEPT-001,PROBLEM_MATCHES_CLAUSE,0.77,问题描述或整改意见出现标准缺失/依据不足信号。 关联标准依据：Q/GDW-SAMPLE-003 电力工程验收整改闭环管理标准 待修订 验收发现的问题应明确责任单位、整改时限、复验结论和闭环证据，逾期未闭环应升级管控。
+Edge_fec71f30b38d,Problem:SP-009,ProblemCategory_d214ac8429fb,PROBLEM_HAS_CATEGORY,,
+Edge_27f4c3bebc69,Problem:SP-009,Equipment_e0e7e69d2975,PROBLEM_INVOLVES_EQUIPMENT,,
+Edge_6741c989a4cb,Problem:SP-009,RevisionNeed_18c16323e72e,PROBLEM_TRIGGERS_REVISION_NEED,,
+Edge_cfadaf45cfee,Problem:SP-010,Clause:CLAUSE-GIS-001,PROBLEM_MATCHES_CLAUSE,0.67,问题描述或整改意见出现标准冲突/交叉不一致信号。 关联标准依据：Q/GDW-SAMPLE-001 组合电器安装与接地监督标准 现行 GIS接地线应与接地母线采用螺栓连接方式，连接点应可靠防松并保留检查记录。
+Edge_260a2e5e66da,Problem:SP-010,ProblemCategory_77160097e82d,PROBLEM_HAS_CATEGORY,,
+Edge_c8930854c164,Problem:SP-010,Equipment_b8b96da032b8,PROBLEM_INVOLVES_EQUIPMENT,,
+Edge_284473012f78,Problem:SP-010,RevisionNeed_922ce156cb42,PROBLEM_TRIGGERS_REVISION_NEED,,
+Edge_f55c40115277,Standard:STD-GIS-001,RevisionPriority_797c4cedcfa2,STANDARD_HAS_REVISION_PRIORITY,,

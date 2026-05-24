@@ -5,7 +5,7 @@ import unittest
 
 import pandas as pd
 
-from src.utils.graph_export import build_graph_export_dataframe
+from src.utils.graph_export import build_graph_export_dataframe, build_graph_node_edge_tables
 
 
 class GraphExportTest(unittest.TestCase):
@@ -71,6 +71,53 @@ class GraphExportTest(unittest.TestCase):
         self.assertNotIn("related_to_clause", edge_types)
         self.assertNotIn("belongs_to_standard", edge_types)
         self.assertIn("related_to_standard", edge_types)
+
+    def test_graph_node_edge_tables_are_deduplicated_and_have_expected_types(self) -> None:
+        dataframe = pd.DataFrame(
+            [
+                {
+                    "problem_id": "P1",
+                    "问题描述": "GIS接地线未按要求连接",
+                    "设备类型": "组合电器",
+                    "predicted_category": "施工质量",
+                    "revision_need_type": "执行落实问题",
+                    "related_standard_id": "S1",
+                    "related_standard_name": "组合电器监督标准",
+                    "related_clause_id": "C1",
+                    "related_clause_no": "4.3.10",
+                    "related_clause_text": "GIS接地线应采用螺栓连接。",
+                    "standard_revision_priority_initial": "medium",
+                },
+                {
+                    "problem_id": "P2",
+                    "问题描述": "GIS接地母线记录缺失",
+                    "设备类型": "组合电器",
+                    "predicted_category": "施工质量",
+                    "revision_need_type": "标准表述歧义",
+                    "related_standard_id": "S1",
+                    "related_standard_name": "组合电器监督标准",
+                    "related_clause_id": "C1",
+                    "related_clause_no": "4.3.10",
+                    "related_clause_text": "GIS接地线应采用螺栓连接。",
+                    "standard_revision_priority_initial": "medium",
+                },
+            ]
+        )
+        nodes, edges = build_graph_node_edge_tables(dataframe)
+
+        standard_nodes = nodes[nodes["node_type"] == "Standard"]
+        clause_nodes = nodes[nodes["node_type"] == "Clause"]
+        self.assertEqual(len(standard_nodes), 1)
+        self.assertEqual(len(clause_nodes), 1)
+
+        edge_types = set(edges["relation_type"])
+        self.assertIn("PROBLEM_MATCHES_CLAUSE", edge_types)
+        self.assertIn("CLAUSE_BELONGS_TO_STANDARD", edge_types)
+        self.assertIn("PROBLEM_HAS_CATEGORY", edge_types)
+        self.assertIn("PROBLEM_INVOLVES_EQUIPMENT", edge_types)
+        self.assertIn("PROBLEM_TRIGGERS_REVISION_NEED", edge_types)
+        self.assertIn("STANDARD_HAS_REVISION_PRIORITY", edge_types)
+        self.assertEqual(len(edges["edge_id"]), len(set(edges["edge_id"])))
 
 
 if __name__ == "__main__":

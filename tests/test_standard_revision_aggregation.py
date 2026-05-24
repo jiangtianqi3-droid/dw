@@ -34,6 +34,9 @@ class StandardRevisionAggregationTest(unittest.TestCase):
                     "kg_clause_id": "C1",
                     "kg_clause_title": "接地连接要求",
                     "kg_relation_confidence": 0.8,
+                    "problem_standard_relation_type": "standard_execution",
+                    "revision_need_type": "执行落实问题",
+                    "standard_status": "现行",
                     "revision_demand": True,
                     "standard_revision_priority_score": 90,
                 },
@@ -53,6 +56,9 @@ class StandardRevisionAggregationTest(unittest.TestCase):
                     "kg_clause_id": "C1",
                     "kg_clause_title": "接地连接要求",
                     "kg_relation_confidence": 0.6,
+                    "problem_standard_relation_type": "standard_ambiguous",
+                    "revision_need_type": "标准表述歧义",
+                    "standard_status": "现行",
                     "revision_demand": "是",
                     "standard_revision_priority_score": 80,
                 },
@@ -72,6 +78,9 @@ class StandardRevisionAggregationTest(unittest.TestCase):
                     "kg_clause_id": "C1",
                     "kg_clause_title": "接地连接要求",
                     "kg_relation_confidence": 0.9,
+                    "problem_standard_relation_type": "standard_execution",
+                    "revision_need_type": "执行落实问题",
+                    "standard_status": "现行",
                     "revision_demand": False,
                     "standard_revision_priority_score": 75,
                 },
@@ -91,6 +100,9 @@ class StandardRevisionAggregationTest(unittest.TestCase):
                     "kg_clause_id": "C2",
                     "kg_clause_title": "铭牌要求",
                     "kg_relation_confidence": 0.35,
+                    "problem_standard_relation_type": "standard_execution",
+                    "revision_need_type": "执行落实问题",
+                    "standard_status": "在运",
                     "revision_demand": False,
                     "standard_revision_priority_score": 20,
                 },
@@ -110,6 +122,9 @@ class StandardRevisionAggregationTest(unittest.TestCase):
                     "kg_clause_id": "",
                     "kg_clause_title": "",
                     "kg_relation_confidence": 0.7,
+                    "problem_standard_relation_type": "standard_missing",
+                    "revision_need_type": "标准缺失",
+                    "standard_status": "待修订",
                     "revision_demand": "标准缺失",
                     "standard_revision_priority_score": 65,
                 },
@@ -125,6 +140,13 @@ class StandardRevisionAggregationTest(unittest.TestCase):
         self.assertEqual(row["revision_demand_count"], 2)
         self.assertAlmostEqual(row["avg_relation_confidence"], 0.7667, places=4)
         self.assertAlmostEqual(row["max_relation_confidence"], 0.9, places=4)
+        self.assertEqual(row["standard_id"], "S1")
+        self.assertEqual(row["clause_id"], "C1")
+        self.assertEqual(row["problem_count"], 3)
+        self.assertIn("standard_execution", row["relation_type_distribution"])
+        self.assertIn("执行落实问题", row["revision_need_type_distribution"])
+        self.assertIn(row["revision_priority_level"], {"高优先级", "中高优先级", "中优先级", "低优先级"})
+        self.assertTrue(row["revision_reason_summary"])
         self.assertGreaterEqual(row["aggregated_priority_score"], 0)
         self.assertLessEqual(row["aggregated_priority_score"], 100)
 

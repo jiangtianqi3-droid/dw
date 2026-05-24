@@ -1,0 +1,114 @@
+{
+  "standards": [
+    {
+      "standard_id": "STD-GIS-001",
+      "standard_name": "组合电器安装与接地监督标准",
+      "standard_no": "Q/GDW-SAMPLE-001",
+      "standard_status": "现行",
+      "domain": "电气设备",
+      "equipment_type": "组合电器",
+      "risk_level": "较大"
+    },
+    {
+      "standard_id": "STD-TRANS-002",
+      "standard_name": "主变压器施工质量监督标准",
+      "standard_no": "Q/GDW-SAMPLE-002",
+      "standard_status": "在运",
+      "domain": "变电施工",
+      "equipment_type": "主变压器",
+      "risk_level": "重大"
+    },
+    {
+      "standard_id": "STD-ACCEPT-003",
+      "standard_name": "电力工程验收整改闭环管理标准",
+      "standard_no": "Q/GDW-SAMPLE-003",
+      "standard_status": "待修订",
+      "domain": "验收整改",
+      "equipment_type": "通用设备",
+      "risk_level": "较大"
+    },
+    {
+      "standard_id": "STD-SAFE-004",
+      "standard_name": "施工现场安全风险监督旧版标准",
+      "standard_no": "Q/GDW-SAMPLE-004",
+      "standard_status": "废止",
+      "domain": "安全风险",
+      "equipment_type": "施工现场",
+      "risk_level": "重大"
+    }
+  ],
+  "clauses": [
+    {
+      "clause_id": "CLAUSE-GIS-001",
+      "standard_id": "STD-GIS-001",
+      "clause_no": "4.3.10",
+      "clause_text": "GIS接地线应与接地母线采用螺栓连接方式，连接点应可靠防松并保留检查记录。",
+      "keywords": ["GIS", "接地线", "接地母线", "螺栓连接", "防松", "记录"],
+      "equipment_type": "组合电器",
+      "problem_category": "施工质量"
+    },
+    {
+      "clause_id": "CLAUSE-GIS-002",
+      "standard_id": "STD-GIS-001",
+      "clause_no": "5.2.4",
+      "clause_text": "组合电器气室压力、密封状态和异常告警应在投运前完成核查，发现渗漏应完成整改。",
+      "keywords": ["组合电器", "气室", "压力", "密封", "告警", "渗漏"],
+      "equipment_type": "组合电器",
+      "problem_category": "设备缺陷"
+    },
+    {
+      "clause_id": "CLAUSE-TRANS-001",
+      "standard_id": "STD-TRANS-002",
+      "clause_no": "3.1.2",
+      "clause_text": "主变压器安装前应检查套管、油位、冷却装置和本体密封，缺陷未闭环不得进入下一工序。",
+      "keywords": ["主变压器", "套管", "油位", "冷却装置", "密封", "缺陷闭环"],
+      "equipment_type": "主变压器",
+      "problem_category": "设备缺陷"
+    },
+    {
+      "clause_id": "CLAUSE-TRANS-002",
+      "standard_id": "STD-TRANS-002",
+      "clause_no": "6.4.1",
+      "clause_text": "变压器交接试验项目应按批准方案完成，试验报告、数据复核和异常处置记录应齐全。",
+      "keywords": ["变压器", "交接试验", "试验报告", "数据复核", "异常处置"],
+      "equipment_type": "主变压器",
+      "problem_category": "验收整改"
+    },
+    {
+      "clause_id": "CLAUSE-ACCEPT-001",
+      "standard_id": "STD-ACCEPT-003",
+      "clause_no": "2.2.1",
+      "clause_text": "验收发现的问题应明确责任单位、整改时限、复验结论和闭环证据，逾期未闭环应升级管控。",
+      "keywords": ["验收", "整改", "责任单位", "整改时限", "复验", "闭环证据", "逾期"],
+      "equipment_type": "通用设备",
+      "problem_category": "验收整改"
+    },
+    {
+      "clause_id": "CLAUSE-ACCEPT-002",
+      "standard_id": "STD-ACCEPT-003",
+      "clause_no": "2.4.3",
+      "clause_text": "特殊工况、设计变更或现场条件变化导致原标准难以适用时，应形成标准适用性复核意见。",
+      "keywords": ["特殊工况", "设计变更", "现场条件", "适用性", "复核意见"],
+      "equipment_type": "通用设备",
+      "problem_category": "验收整改"
+    },
+    {
+      "clause_id": "CLAUSE-SAFE-001",
+      "standard_id": "STD-SAFE-004",
+      "clause_no": "7.1.1",
+      "clause_text": "高处作业、临边作业和交叉施工应设置隔离、防坠落和现场监护措施。",
+      "keywords": ["高处作业", "临边", "交叉施工", "隔离", "防坠落", "监护"],
+      "equipment_type": "施工现场",
+      "problem_category": "安全风险"
+    },
+    {
+      "clause_id": "CLAUSE-SAFE-002",
+      "standard_id": "STD-SAFE-004",
+      "clause_no": "7.3.2",
+      "clause_text": "动火、吊装和带电邻近作业应完成风险辨识、作业票审批和安全交底。",
+      "keywords": ["动火", "吊装", "带电邻近", "风险辨识", "作业票", "安全交底"],
+      "equipment_type": "施工现场",
+      "problem_category": "安全风险"
+    }
+  ]
+}

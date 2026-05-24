@@ -199,6 +199,59 @@ python -m src.enrich_with_kg --config configs/real_problem_level_v1.yaml --input
 
 - `docs/kg_revision_integration.md`
 
+## 标准库样例与一键闭环 Demo
+
+当前仓库保留正式课题二图谱入口：
+
+- `data/kg/kg_graph.json`
+
+同时提供一个最小可运行标准库样例：
+
+- `data/kg/sample_kg_graph.json`
+- `data/examples/sample_predictions.jsonl`
+
+正式标准库建议放在 `data/kg/` 下。标准库 JSON 至少包含：
+
+- `standards[]`：`standard_id`、`standard_name`、`standard_no`、`standard_status`、`domain`、`equipment_type`、`risk_level`
+- `clauses[]`：`clause_id`、`standard_id`、`clause_no`、`clause_text`、`keywords`、`equipment_type`、`problem_category`
+
+一键运行小闭环：
+
+```bash
+python scripts/run_kg_revision_smoke_test.py
+```
+
+该脚本执行：
+
+```text
+问题数据
+-> 分类预测结果样例
+-> 标准条款关联
+-> 标准修订触发判断
+-> 标准/条款级修订优先级聚合
+-> 图谱节点/关系 CSV 导出
+```
+
+输出文件：
+
+- `outputs/review_sheet_with_kg.jsonl`
+- `outputs/review_sheet_with_kg.csv`
+- `outputs/standard_revision_priority.csv`
+- `outputs/graph_nodes.csv`
+- `outputs/graph_edges.csv`
+
+也可以单独运行标准条款增强：
+
+```bash
+python src/enrich_with_kg.py --input data/examples/sample_predictions.jsonl --kg data/kg/sample_kg_graph.json --output outputs/review_sheet_with_kg.jsonl --min-score 0.12
+```
+
+输出质量检查：
+
+```bash
+python src/validate_kg_outputs.py --input outputs/review_sheet_with_kg.jsonl
+```
+
 ## 标准/条款级修订优先级聚合
 
 完整流程如下：
@@ -256,6 +309,13 @@ python -m src.export_graph_records --config configs/real_problem_level_v1.yaml -
 - 节点：`problem`、`standard`、`clause`、`category`、`severity`、`device`、`major`
 - 边：`related_to_clause`、`belongs_to_standard`、`related_to_standard`、`has_category`、`has_severity`、`has_device`、`has_major`
 
+一键 demo 额外导出 Neo4j 友好的 CSV：
+
+- `outputs/graph_nodes.csv`：`node_id`、`node_type`、`name`、`standard_no`、`status`、`clause_no`、`text`
+- `outputs/graph_edges.csv`：`edge_id`、`source_id`、`target_id`、`relation_type`、`confidence`、`relation_reason`
+
+节点类型包括 `Problem`、`Standard`、`Clause`、`Equipment`、`ProblemCategory`、`RevisionNeed`。关系类型包括 `PROBLEM_MATCHES_CLAUSE`、`CLAUSE_BELONGS_TO_STANDARD`、`PROBLEM_HAS_CATEGORY`、`PROBLEM_INVOLVES_EQUIPMENT`、`PROBLEM_TRIGGERS_REVISION_NEED`、`STANDARD_HAS_REVISION_PRIORITY`。
+
 端到端示例：
 
 ```bash
@@ -269,6 +329,7 @@ python -m src.export_graph_records --config configs/real_problem_level_v1.yaml -
 知识图谱关联与标准修订优先级相关单元测试：
 
 ```bash
+pytest
 python -m unittest tests.test_kg_revision -v
 python -m unittest tests.test_standard_revision_aggregation -v
 python -m unittest discover tests
@@ -281,6 +342,19 @@ python -m unittest discover tests
 - 非课题二覆盖设备识别
 - 修订需求规则
 - 标准/条款级修订优先级聚合
+
+## 当前限制与后续方向
+
+当前条款匹配主要是规则、关键词和轻量文本相似度，不是完整知识图谱推理，也不是深度语义标准理解模型。真实效果依赖标准库质量、字段完整性和人工复核闭环。
+
+后续可扩展：
+
+- 接入正式标准库
+- 接入课题二图谱服务
+- 使用向量检索增强条款匹配
+- 使用人工复核结果优化匹配规则
+- 增加标准生命周期数据
+- 增加多跳图谱推理
 
 ## 可移植性约定
 

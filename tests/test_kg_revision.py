@@ -55,10 +55,44 @@ def _sample_graph() -> dict:
     }
 
 
+def _sample_standard_library() -> dict:
+    return {
+        "standards": [
+            {
+                "standard_id": "STD-1",
+                "standard_name": "组合电器接地标准",
+                "standard_no": "Q/SAMPLE-1",
+                "standard_status": "待修订",
+                "domain": "电气设备",
+                "equipment_type": "组合电器",
+                "risk_level": "较大",
+            }
+        ],
+        "clauses": [
+            {
+                "clause_id": "CLAUSE-1",
+                "standard_id": "STD-1",
+                "clause_no": "4.3.10",
+                "clause_text": "GIS接地线应与接地母线采用螺栓连接方式。",
+                "keywords": ["GIS", "接地线", "接地母线", "螺栓连接"],
+                "equipment_type": "组合电器",
+                "problem_category": "施工质量",
+            }
+        ],
+    }
+
+
 def _load_sample_index():
     with tempfile.TemporaryDirectory() as tmp_dir:
         path = Path(tmp_dir) / "kg_graph.json"
         path.write_text(json.dumps(_sample_graph(), ensure_ascii=False), encoding="utf-8")
+        return load_kg_index(path)
+
+
+def _load_sample_standard_index():
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        path = Path(tmp_dir) / "sample_kg_graph.json"
+        path.write_text(json.dumps(_sample_standard_library(), ensure_ascii=False), encoding="utf-8")
         return load_kg_index(path)
 
 
@@ -134,7 +168,40 @@ class KGRevisionTest(unittest.TestCase):
         self.assertEqual(int(report.iloc[0]["linked_issue_count"]), 1)
         self.assertIn(report.iloc[0]["standard_revision_priority_label"], {"高", "中", "低"})
 
+    def test_standard_library_matches_correct_clause_and_outputs_fields(self) -> None:
+        index = _load_sample_standard_index()
+        dataframe = pd.DataFrame(
+            [
+                {
+                    "problem_id": "P1",
+                    "问题描述": "GIS接地线未按要求与接地母线采用螺栓连接。",
+                    "设备类型": "组合电器",
+                    "predicted_category": "施工质量",
+                    "predicted_severity": "较大",
+                }
+            ]
+        )
+        enriched = enrich_dataframe_with_kg(dataframe, index, min_score=0.1)
+        row = enriched.iloc[0]
+        self.assertEqual(row["related_clause_id"], "CLAUSE-1")
+        self.assertEqual(row["related_standard_id"], "STD-1")
+        self.assertGreater(row["standard_match_confidence"], 0)
+        self.assertIn(row["problem_standard_relation_type"], {"standard_execution", "standard_lagging"})
+        self.assertIn(row["revision_need_type"], {"执行落实问题", "适用性不足"})
+        self.assertIn(row["standard_revision_priority_initial"], {"high", "medium", "low"})
+        self.assertEqual(row["graph_relation_type"], "PROBLEM_MATCHES_CLAUSE")
+
+    def test_empty_standard_library_and_missing_problem_fields_do_not_crash(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = Path(tmp_dir) / "empty.json"
+            path.write_text(json.dumps({"standards": [], "clauses": []}, ensure_ascii=False), encoding="utf-8")
+            index = load_kg_index(path)
+        enriched = enrich_dataframe_with_kg(pd.DataFrame([{"problem_id": "P-empty"}]), index)
+        row = enriched.iloc[0]
+        self.assertEqual(row["kg_match_status"], "no_kg_data")
+        self.assertEqual(row["related_standard_name"], "")
+        self.assertEqual(row["problem_standard_relation_type"], "unmatched")
+
 
 if __name__ == "__main__":
     unittest.main()
-

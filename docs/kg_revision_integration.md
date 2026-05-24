@@ -15,6 +15,8 @@
 
 第一版只消费课题二离线图谱文件，不依赖 Neo4j 或 FastAPI 服务。
 
+当前也支持标准库样例结构，用于验证“问题反馈 -> 标准条款 -> 修订触发 -> 优先级聚合 -> 图谱导出”的最小闭环。
+
 ## 2. 输入文件
 
 模型侧输入：
@@ -25,6 +27,11 @@
 课题二输入：
 
 - `data/kg/kg_graph.json`
+
+标准库样例输入：
+
+- `data/kg/sample_kg_graph.json`
+- `data/examples/sample_predictions.jsonl`
 
 仓库已内置该离线图谱文件，因此克隆本仓库后不需要额外准备 `trustworthy-tech-kg/` 目录。
 
@@ -51,6 +58,28 @@ kg_match_status=unsupported_equipment
   --markdown-report outputs/kg_revision_report.md `
   --top-k 3 `
   --min-score 0.18
+```
+
+标准库样例闭环：
+
+```powershell
+python scripts/run_kg_revision_smoke_test.py
+```
+
+单独运行标准条款增强：
+
+```powershell
+python src/enrich_with_kg.py `
+  --input data/examples/sample_predictions.jsonl `
+  --kg data/kg/sample_kg_graph.json `
+  --output outputs/review_sheet_with_kg.jsonl `
+  --min-score 0.12
+```
+
+质量检查：
+
+```powershell
+python src/validate_kg_outputs.py --input outputs/review_sheet_with_kg.jsonl
 ```
 
 ## 4. 匹配逻辑
@@ -81,6 +110,37 @@ kg_match_status=unsupported_equipment
 
 匹配分数综合考虑监督要点文本、问题文本、整改文本、标准依据、阶段和问题分级。若监督要点文本直接命中课题二监督要点或监督要求，会给出较高分。
 
+标准库样例结构使用以下字段：
+
+```json
+{
+  "standards": [
+    {
+      "standard_id": "...",
+      "standard_name": "...",
+      "standard_no": "...",
+      "standard_status": "...",
+      "domain": "...",
+      "equipment_type": "...",
+      "risk_level": "..."
+    }
+  ],
+  "clauses": [
+    {
+      "clause_id": "...",
+      "standard_id": "...",
+      "clause_no": "...",
+      "clause_text": "...",
+      "keywords": [],
+      "equipment_type": "...",
+      "problem_category": "..."
+    }
+  ]
+}
+```
+
+标准库匹配综合使用问题文本、设备类型、预测问题类别、条款关键词和轻量文本相似度。
+
 ## 5. 新增字段
 
 问题级图谱关联字段：
@@ -103,6 +163,24 @@ kg_match_status=unsupported_equipment
 - `revision_priority_score`
 - `revision_priority_label`
 - `revision_reason`
+
+标准条款增强字段：
+
+- `related_standard_id`
+- `related_standard_name`
+- `related_standard_no`
+- `related_clause_id`
+- `related_clause_no`
+- `related_clause_text`
+- `standard_match_confidence`
+- `problem_standard_relation_type`
+- `standard_status`
+- `standard_revision_trigger_evidence`
+- `standard_revision_priority_initial`
+- `graph_problem_node_id`
+- `graph_standard_node_id`
+- `graph_clause_node_id`
+- `graph_relation_type`
 
 标准聚合报告字段：
 
@@ -143,6 +221,19 @@ kg_match_status=unsupported_equipment
 - `aggregated_priority_reason`
 - `representative_problem_ids`
 - `representative_problem_texts`
+- `standard_id`
+- `standard_name`
+- `standard_no`
+- `clause_id`
+- `clause_no`
+- `problem_count`
+- `high_risk_problem_count`
+- `avg_match_confidence`
+- `relation_type_distribution`
+- `revision_need_type_distribution`
+- `revision_priority_score`
+- `revision_priority_level`
+- `revision_reason_summary`
 
 ## 6. 修订需求类型
 
@@ -244,6 +335,39 @@ aggregated_priority_score =
 
 如果 `kg_clause_id` 为空，不生成空条款节点，但仍保留 `problem -> standard` 关系。
 
+一键 demo 同时导出适合图数据库导入的 CSV：
+
+- `outputs/graph_nodes.csv`
+- `outputs/graph_edges.csv`
+
+节点字段：
+
+- `node_id`：稳定节点 ID
+- `node_type`：`Problem`、`Standard`、`Clause`、`Equipment`、`ProblemCategory`、`RevisionNeed`
+- `name`
+- `standard_no`
+- `status`
+- `clause_no`
+- `text`
+
+边字段：
+
+- `edge_id`：由 `source_id + relation_type + target_id` 稳定生成
+- `source_id`
+- `target_id`
+- `relation_type`
+- `confidence`
+- `relation_reason`
+
+CSV 关系类型包括：
+
+- `PROBLEM_MATCHES_CLAUSE`
+- `CLAUSE_BELONGS_TO_STANDARD`
+- `PROBLEM_HAS_CATEGORY`
+- `PROBLEM_INVOLVES_EQUIPMENT`
+- `PROBLEM_TRIGGERS_REVISION_NEED`
+- `STANDARD_HAS_REVISION_PRIORITY`
+
 ## 9. 概念区分
 
 - `priority`：问题处理优先级，面向单条问题的现场整改和管理闭环。
@@ -255,3 +379,14 @@ aggregated_priority_score =
 - 当前是规则匹配和规则识别版本，适合形成演示和报告闭环。
 - 课题二图谱覆盖范围有限，未覆盖设备不做低置信度硬匹配。
 - 修订需求结论仍需专家复核，不能直接替代正式标准制修订决策。
+- 当前条款匹配主要是规则、关键词和轻量相似度，不是完整知识图谱推理。
+- 当前不是深度语义标准理解模型，真实效果依赖标准库质量和字段完整性。
+
+## 11. 后续扩展方向
+
+- 接入正式标准库。
+- 接入课题二图谱服务。
+- 使用向量检索增强条款匹配。
+- 使用人工复核结果优化匹配规则。
+- 增加标准生命周期数据。
+- 增加多跳图谱推理。

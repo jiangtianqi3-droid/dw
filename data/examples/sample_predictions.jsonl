@@ -1,0 +1,10 @@
+{"problem_id":"SP-001","问题描述":"GIS接地线未按要求与接地母线采用螺栓连接，现场缺少防松检查记录。","设备类型":"组合电器","监督专业":"电气设备性能","监督环节":"安装调试","predicted_category":"施工质量","predicted_severity":"重大","category_confidence":0.91,"severity_confidence":0.88}
+{"problem_id":"SP-002","问题描述":"组合电器气室压力异常告警后未完成渗漏整改闭环。","设备类型":"组合电器","监督专业":"电气设备性能","监督环节":"竣工验收","predicted_category":"设备缺陷","predicted_severity":"较大","category_confidence":0.86,"severity_confidence":0.82}
+{"problem_id":"SP-003","问题描述":"主变压器套管油位检查记录缺失，冷却装置密封缺陷未闭环。","设备类型":"主变压器","监督专业":"设备安装","监督环节":"安装调试","predicted_category":"设备缺陷","predicted_severity":"重大","category_confidence":0.9,"severity_confidence":0.87}
+{"problem_id":"SP-004","问题描述":"变压器交接试验报告数据复核不完整，异常处置记录缺失。","设备类型":"主变压器","监督专业":"试验验收","监督环节":"竣工验收","predicted_category":"验收整改","predicted_severity":"较大","category_confidence":0.84,"severity_confidence":0.81}
+{"problem_id":"SP-005","问题描述":"验收发现的问题未明确责任单位和整改时限，复验结论缺失。","设备类型":"通用设备","监督专业":"验收管理","监督环节":"竣工验收","predicted_category":"验收整改","predicted_severity":"一般","category_confidence":0.79,"severity_confidence":0.76}
+{"problem_id":"SP-006","问题描述":"特殊工况下现场条件变化，现有标准适用性不明确，缺少复核意见。","设备类型":"通用设备","监督专业":"验收管理","监督环节":"工程设计","predicted_category":"验收整改","predicted_severity":"较大","category_confidence":0.83,"severity_confidence":0.8}
+{"problem_id":"SP-007","问题描述":"临边高处作业未设置防坠落隔离措施，现场监护不到位。","设备类型":"施工现场","监督专业":"安全管理","监督环节":"施工过程","predicted_category":"安全风险","predicted_severity":"重大","category_confidence":0.93,"severity_confidence":0.9}
+{"problem_id":"SP-008","问题描述":"吊装作业票审批缺失，动火作业安全交底记录不完整。","设备类型":"施工现场","监督专业":"安全管理","监督环节":"施工过程","predicted_category":"安全风险","predicted_severity":"较大","category_confidence":0.88,"severity_confidence":0.85}
+{"problem_id":"SP-009","问题描述":"现场提出当前验收整改标准缺少数字化闭环证据格式要求。","设备类型":"通用设备","监督专业":"验收管理","监督环节":"竣工验收","predicted_category":"验收整改","predicted_severity":"一般","category_confidence":0.77,"severity_confidence":0.72}
+{"problem_id":"SP-010","问题描述":"GIS接地检查条款与设计变更要求存在不一致，现场执行边界不清。","设备类型":"组合电器","监督专业":"工程设计","监督环节":"工程设计","predicted_category":"施工质量","predicted_severity":"较大","category_confidence":0.74,"severity_confidence":0.7}

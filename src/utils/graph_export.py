@@ -337,6 +337,108 @@ def build_graph_export_dataframe(
     return pd.DataFrame(rows, columns=DEFAULT_GRAPH_COLUMNS)
 
 
+def _stable_edge_id(source: str, relation_type: str, target: str) -> str:
+    return _stable_id("Edge", f"{source}|{relation_type}|{target}")
+
+
+def _add_node(nodes: dict[str, dict], node_id: str, node_type: str, name: str, **properties: object) -> None:
+    if not node_id:
+        return
+    nodes.setdefault(
+        node_id,
+        {
+            "node_id": node_id,
+            "node_type": node_type,
+            "name": name,
+            **{key: value for key, value in properties.items() if normalize_scalar(value)},
+        },
+    )
+
+
+def _add_edge(edges: dict[str, dict], source: str, target: str, relation_type: str, **properties: object) -> None:
+    if not source or not target:
+        return
+    edge_id = _stable_edge_id(source, relation_type, target)
+    edges.setdefault(
+        edge_id,
+        {
+            "edge_id": edge_id,
+            "source_id": source,
+            "target_id": target,
+            "relation_type": relation_type,
+            **{key: value for key, value in properties.items() if normalize_scalar(value)},
+        },
+    )
+
+
+def build_graph_node_edge_tables(dataframe: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    nodes: dict[str, dict] = {}
+    edges: dict[str, dict] = {}
+
+    for record in dataframe.to_dict(orient="records"):
+        problem_id = _first_non_empty(record, ["graph_problem_node_id", "problem_id", "sample_id", "issue_id"])
+        if not problem_id.startswith("Problem:"):
+            problem_id = f"Problem:{problem_id or _stable_id('problem', _first_non_empty(record, ['问题描述', 'text', 'issue_text']))}"
+        problem_text = _first_non_empty(record, ["问题描述", "text", "issue_text"])
+        _add_node(nodes, problem_id, "Problem", problem_id.replace("Problem:", ""), text=problem_text)
+
+        standard_id = _first_non_empty(record, ["graph_standard_node_id", "related_standard_id", "kg_standard_id"])
+        if standard_id and not standard_id.startswith("Standard:"):
+            standard_id = f"Standard:{standard_id}"
+        standard_name = _first_non_empty(record, ["related_standard_name", "kg_standard_name", "standard_name"])
+        standard_no = _first_non_empty(record, ["related_standard_no", "standard_no"])
+        if standard_id:
+            _add_node(nodes, standard_id, "Standard", standard_name or standard_id, standard_no=standard_no, status=_first_non_empty(record, ["standard_status"]))
+
+        clause_id = _first_non_empty(record, ["graph_clause_node_id", "related_clause_id", "kg_clause_id"])
+        if clause_id and not clause_id.startswith("Clause:"):
+            clause_id = f"Clause:{clause_id}"
+        clause_no = _first_non_empty(record, ["related_clause_no", "clause_no"])
+        clause_text = _first_non_empty(record, ["related_clause_text", "kg_clause_title", "clause_text"])
+        if clause_id:
+            _add_node(nodes, clause_id, "Clause", clause_no or clause_id, clause_no=clause_no, text=clause_text)
+            _add_edge(
+                edges,
+                problem_id,
+                clause_id,
+                "PROBLEM_MATCHES_CLAUSE",
+                confidence=_first_non_empty(record, ["standard_match_confidence", "kg_relation_confidence", "kg_match_score"]),
+                relation_reason=_first_non_empty(record, ["standard_revision_trigger_evidence", "revision_reason"]),
+            )
+            _add_edge(edges, clause_id, standard_id, "CLAUSE_BELONGS_TO_STANDARD")
+
+        category = _first_non_empty(record, ["predicted_category", "pred_category", "issue_category", "预测问题类别"])
+        if category:
+            category_id = _stable_id("ProblemCategory", category)
+            _add_node(nodes, category_id, "ProblemCategory", category)
+            _add_edge(edges, problem_id, category_id, "PROBLEM_HAS_CATEGORY")
+
+        equipment = _first_non_empty(record, ["设备类型", "device_type", "equipment_type"])
+        if equipment:
+            equipment_id = _stable_id("Equipment", equipment)
+            _add_node(nodes, equipment_id, "Equipment", equipment)
+            _add_edge(edges, problem_id, equipment_id, "PROBLEM_INVOLVES_EQUIPMENT")
+
+        revision_need = _first_non_empty(record, ["revision_need_type"])
+        if revision_need:
+            revision_id = _stable_id("RevisionNeed", revision_need)
+            _add_node(nodes, revision_id, "RevisionNeed", revision_need)
+            _add_edge(edges, problem_id, revision_id, "PROBLEM_TRIGGERS_REVISION_NEED")
+
+        priority = _first_non_empty(record, ["standard_revision_priority_initial", "revision_priority_label"])
+        if standard_id and priority:
+            priority_id = _stable_id("RevisionPriority", f"{standard_id}:{priority}")
+            _add_node(nodes, priority_id, "RevisionPriority", priority)
+            _add_edge(edges, standard_id, priority_id, "STANDARD_HAS_REVISION_PRIORITY")
+
+    node_columns = ["node_id", "node_type", "name", "standard_no", "status", "clause_no", "text"]
+    edge_columns = ["edge_id", "source_id", "target_id", "relation_type", "confidence", "relation_reason"]
+    return (
+        pd.DataFrame(nodes.values()).reindex(columns=node_columns, fill_value=""),
+        pd.DataFrame(edges.values()).reindex(columns=edge_columns, fill_value=""),
+    )
+
+
 def resolve_graph_output_path(config: dict, input_file: str | Path, output_file: str | None) -> Path:
     if output_file:
         return Path(output_file)
